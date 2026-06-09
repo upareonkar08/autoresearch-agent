@@ -8,8 +8,8 @@ if sys.platform == "linux":
         pass
 
 import os
+import hashlib
 import chromadb
-from chromadb.utils import embedding_functions
 
 # Define paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -21,21 +21,41 @@ os.makedirs(DB_DIR, exist_ok=True)
 # Initialize ChromaDB persistent client
 client = chromadb.PersistentClient(path=DB_DIR)
 
-# Use default embedding function (sentence-transformers / onnx)
-try:
-    embedding_fn = embedding_functions.DefaultEmbeddingFunction()
-except Exception as e:
-    print(f"Warning: Failed to load DefaultEmbeddingFunction ({e}). Falling back to simple embedding.")
-    # Fallback embedding function that returns dummy or simple random embeddings if system dependencies fail
-    class FallbackEmbeddingFunction(chromadb.EmbeddingFunction):
-        def __call__(self, input: chromadb.Documents) -> chromadb.Embeddings:
-            # Simple dummy embedding: list of 384-dim zero vectors
-            return [[0.0] * 384 for _ in input]
-    embedding_fn = FallbackEmbeddingFunction()
+class HashingEmbeddingFunction(chromadb.EmbeddingFunction):
+    """
+    A lightweight, pure-Python, zero-dependency embedding function.
+    It hashes words into a 128-dimensional space using MD5 and normalizes the vectors.
+    This prevents memory exhaustion (OOM) and model download timeouts on Streamlit Cloud.
+    """
+    def __call__(self, input: chromadb.Documents) -> chromadb.Embeddings:
+        embeddings = []
+        for text in input:
+            vector = [0.0] * 128
+            words = text.lower().split()
+            if not words:
+                embeddings.append(vector)
+                continue
+            
+            for word in words:
+                # Hash each word into an index between 0 and 127
+                h = int(hashlib.md5(word.encode('utf-8')).hexdigest(), 16)
+                index = h % 128
+                vector[index] += 1.0
+                
+            # Normalize vector (L2 norm)
+            norm = sum(x**2 for x in vector) ** 0.5
+            if norm > 0:
+                vector = [x / norm for x in vector]
+                
+            embeddings.append(vector)
+        return embeddings
 
-# Get or create the collection
+# Initialize hashing embedding function
+embedding_fn = HashingEmbeddingFunction()
+
+# Get or create the collection (using v2 to prevent dimension mismatch with older runs)
 collection = client.get_or_create_collection(
-    name="autoresearch_docs",
+    name="autoresearch_docs_v2",
     embedding_function=embedding_fn
 )
 
@@ -100,14 +120,14 @@ def retrieve(query: str, n: int = 5) -> list[dict]:
 
 def clear_collection():
     """
-    Clears all items in the autoresearch_docs collection.
+    Clears all items in the autoresearch_docs_v2 collection.
     """
     global collection
     try:
-        client.delete_collection("autoresearch_docs")
+        client.delete_collection("autoresearch_docs_v2")
     except Exception:
         pass
     collection = client.get_or_create_collection(
-        name="autoresearch_docs",
+        name="autoresearch_docs_v2",
         embedding_function=embedding_fn
     )
