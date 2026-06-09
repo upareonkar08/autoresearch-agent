@@ -199,6 +199,7 @@ if search_button and query.strip():
             st.info("Backend API is offline or unreachable. Falling back to in-process execution...")
             
         # If API failed or was unreachable, run the graph in-process
+        error_message = None
         if not api_success:
             try:
                 # Dynamically import graph components
@@ -235,8 +236,14 @@ if search_button and query.strip():
                 status_box.update(label="Research complete!", state="complete")
                 api_success = True
             except Exception as local_err:
-                status_box.update(label="Research failed!", state="error")
-                st.error(f"In-process execution failed: {local_err}")
+                import traceback
+                status_box.update(label="Research failed!", state="error", expanded=True)
+                error_message = f"**In-process execution failed:** `{local_err}`\n\n```python\n{traceback.format_exc()}\n```"
+
+    # Display error if one occurred
+    if error_message:
+        st.error(error_message)
+
 
 
 # Display results
