@@ -25,7 +25,14 @@ def search_sub_questions(sub_questions: list[str]) -> list[dict]:
     """
     api_key = os.getenv("TAVILY_API_KEY")
     if not api_key:
-        logger.error("TAVILY_API_KEY is not set in environment or .env file.")
+        try:
+            import streamlit as st
+            api_key = st.secrets.get("TAVILY_API_KEY")
+        except Exception:
+            pass
+            
+    if not api_key:
+        logger.error("TAVILY_API_KEY is not set in environment, .env file, or streamlit secrets.")
         return []
         
     try:

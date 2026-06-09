@@ -164,7 +164,13 @@ def get_llm(max_tokens: int = 2000):
         ChatAnthropic or MockChatAnthropic: The initialized LLM client.
     """
     api_key = os.getenv("ANTHROPIC_API_KEY")
-    
+    if not api_key:
+        try:
+            import streamlit as st
+            api_key = st.secrets.get("ANTHROPIC_API_KEY")
+        except Exception:
+            pass
+
     # Check if key is missing or is the placeholder
     is_mock = (
         not api_key or 
