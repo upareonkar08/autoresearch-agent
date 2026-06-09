@@ -1,7 +1,11 @@
 import os
+import sys
 import time
 import httpx
 import streamlit as st
+
+# Add repository root to python path to prevent ModuleNotFoundError
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # API Endpoint
 API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
