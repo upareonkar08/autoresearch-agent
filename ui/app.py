@@ -303,5 +303,5 @@ if st.session_state.report:
                     st.error(f"Error submitting feedback: {e}")
     else:
         st.success("Feedback submitted. Thank you for helping improve the agent!")
-elif search_button:
+elif search_button and not query.strip():
     st.warning("Please enter a research question before submitting.")

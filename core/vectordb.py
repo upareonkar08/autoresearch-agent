@@ -1,3 +1,12 @@
+import sys
+# ChromaDB SQLite compatibility monkeypatch for Linux environments (like Streamlit Cloud)
+if sys.platform == "linux":
+    try:
+        import pysqlite3
+        sys.modules["sqlite3"] = pysqlite3
+    except ImportError:
+        pass
+
 import os
 import chromadb
 from chromadb.utils import embedding_functions
