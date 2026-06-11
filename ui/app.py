@@ -206,40 +206,130 @@ if "last_query" not in st.session_state:
     st.session_state.last_query = ""
 if "feedback_submitted" not in st.session_state:
     st.session_state.feedback_submitted = False
+if "is_competitor_run" not in st.session_state:
+    st.session_state.is_competitor_run = False
+if "startup_name" not in st.session_state:
+    st.session_state.startup_name = "EcoDeliver"
+if "industry_niche" not in st.session_state:
+    st.session_state.industry_niche = "Green Last-Mile Logistics"
+if "comp1" not in st.session_state:
+    st.session_state.comp1 = "FedEx Green"
+if "comp2" not in st.session_state:
+    st.session_state.comp2 = "DHL GoGreen"
+if "comp3" not in st.session_state:
+    st.session_state.comp3 = "Stuart Delivery"
 
-# Domain & Query controls
-col_dom, col_query = st.columns([1, 4])
-with col_dom:
-    domain = st.selectbox(
-        "Domain Specialist Mode",
-        options=["General", "Medical", "Legal", "Tech", "Finance"],
-        help="Adjusts search strategies, prompts, and citations based on the selection."
-    )
+# Create tabs for Custom Research vs Portfolio Competitor Analyzer
+tab_custom, tab_competitor = st.tabs(["🔍 Custom Research", "📊 Startup Competitor Analyzer"])
+
+query = ""
+domain = "General"
+uploaded_file = None
+uploaded_images = []
+search_button = False
+
+with tab_custom:
+    # Domain & Query controls
+    col_dom, col_query = st.columns([1, 4])
+    with col_dom:
+        domain_custom = st.selectbox(
+            "Domain Specialist Mode",
+            options=["General", "Medical", "Legal", "Tech", "Finance"],
+            help="Adjusts search strategies, prompts, and citations based on the selection.",
+            key="domain_custom"
+        )
+    with col_query:
+        query_custom = st.text_input(
+            "What research question would you like to investigate?",
+            placeholder="e.g., What are the latest trends in generative AI in 2025?",
+            value="What are the latest trends in generative AI in 2025?",
+            key="query_custom"
+        )
+
+    # Multimodal inputs
+    col_pdf, col_img = st.columns(2)
+    with col_pdf:
+        uploaded_file_custom = st.file_uploader(
+            "Upload reference PDF document (Optional)",
+            type=["pdf"],
+            help="Will be indexed in ChromaDB alongside search results.",
+            key="pdf_custom"
+        )
+    with col_img:
+        uploaded_images_custom = st.file_uploader(
+            "Upload reference images or charts (Optional / Multimodal)",
+            type=["png", "jpg", "jpeg"],
+            accept_multiple_files=True,
+            help="Uploaded charts will be analyzed using Claude Vision and indexed.",
+            key="img_custom"
+        )
+    search_button_custom = st.button("Start Research", type="primary", use_container_width=True, key="btn_custom")
     
-with col_query:
-    query = st.text_input(
-        "What research question would you like to investigate?",
-        placeholder="e.g., What are the latest trends in generative AI in 2025?",
-        value="What are the latest trends in generative AI in 2025?"
-    )
+    if search_button_custom:
+        query = query_custom
+        domain = domain_custom
+        uploaded_file = uploaded_file_custom
+        uploaded_images = uploaded_images_custom
+        search_button = True
+        st.session_state.is_competitor_run = False
 
-# Multimodal inputs
-col_pdf, col_img = st.columns(2)
-with col_pdf:
-    uploaded_file = st.file_uploader(
-        "Upload reference PDF document (Optional)",
-        type=["pdf"],
-        help="Will be indexed in ChromaDB alongside search results."
-    )
-with col_img:
-    uploaded_images = st.file_uploader(
-        "Upload reference images or charts (Optional / Multimodal)",
-        type=["png", "jpg", "jpeg"],
-        accept_multiple_files=True,
-        help="Uploaded charts will be analyzed using Claude Vision and indexed."
-    )
-
-search_button = st.button("Start Research", type="primary", use_container_width=True)
+with tab_competitor:
+    st.markdown("### 💼 Portfolio Use-Case: Startup Competitor Analyzer")
+    st.markdown("Automate market sizing, competitor comparisons, and SWOT positioning for your startup idea.")
+    
+    col_s1, col_s2 = st.columns(2)
+    with col_s1:
+        my_startup = st.text_input("My Startup Name", value=st.session_state.startup_name, placeholder="e.g. HealthFlow", key="inp_startup")
+    with col_s2:
+        industry = st.text_input("Target Industry / Niche", value=st.session_state.industry_niche, placeholder="e.g. Remote Patient Monitoring", key="inp_industry")
+        
+    col_c1, col_c2, col_c3 = st.columns(3)
+    with col_c1:
+        competitor_1 = st.text_input("Competitor 1", value=st.session_state.comp1, key="inp_c1")
+    with col_c2:
+        competitor_2 = st.text_input("Competitor 2", value=st.session_state.comp2, key="inp_c2")
+    with col_c3:
+        competitor_3 = st.text_input("Competitor 3", value=st.session_state.comp3, key="inp_c3")
+    
+    col_pdf_s, col_img_s = st.columns(2)
+    with col_pdf_s:
+        uploaded_file_s = st.file_uploader(
+            "Upload pitch deck or spec sheet (Optional)",
+            type=["pdf"],
+            help="Will be indexed in ChromaDB.",
+            key="pdf_s"
+        )
+    with col_img_s:
+        uploaded_images_s = st.file_uploader(
+            "Upload competitor charts or slides (Optional / Multimodal)",
+            type=["png", "jpg", "jpeg"],
+            accept_multiple_files=True,
+            help="Images will be analyzed and indexed.",
+            key="img_s"
+        )
+        
+    search_button_s = st.button("Analyze Competitors & Market", type="primary", use_container_width=True, key="btn_s")
+    
+    if search_button_s:
+        # Save competitor params to state
+        st.session_state.startup_name = my_startup
+        st.session_state.industry_niche = industry
+        st.session_state.comp1 = competitor_1
+        st.session_state.comp2 = competitor_2
+        st.session_state.comp3 = competitor_3
+        st.session_state.is_competitor_run = True
+        
+        # Formulate query
+        query = (
+            f"Analyze the market size, growth trends, and CAGR for the {industry} industry. "
+            f"Compare the key offerings, strengths, weaknesses, and value propositions of top competitors: "
+            f"{competitor_1}, {competitor_2}, and {competitor_3}. "
+            f"Identify market gaps and outline a SWOT positioning analysis for our new startup '{my_startup}'."
+        )
+        domain = "Finance"
+        uploaded_file = uploaded_file_s
+        uploaded_images = uploaded_images_s
+        search_button = True
 
 if search_button and query.strip():
     # Reset states
@@ -469,6 +559,27 @@ if st.session_state.report:
                 unsafe_allow_html=True
             )
             
+    # SWOT Analysis Visualizer for Competitor Analyzer mode
+    if st.session_state.get("is_competitor_run") and st.session_state.report:
+        startup_name = st.session_state.get("startup_name", "EcoDeliver")
+        industry_niche = st.session_state.get("industry_niche", "Green Last-Mile Logistics")
+        c1 = st.session_state.get("comp1", "FedEx Green")
+        c2 = st.session_state.get("comp2", "DHL GoGreen")
+        c3 = st.session_state.get("comp3", "Stuart Delivery")
+        
+        st.divider()
+        st.markdown(f"### ⚔️ SWOT Analysis: **{startup_name}** in *{industry_niche}*")
+        c_s, c_w = st.columns(2)
+        with c_s:
+            st.success(f"**Strengths ({startup_name})**\n- Agile differentiation in {industry_niche}\n- Lower operational overhead than legacy giants\n- Focused, niche-specific value proposition")
+        with c_w:
+            st.error(f"**Weaknesses ({startup_name})**\n- Low brand awareness compared to {c1} & {c2}\n- Limited initial capital and resources\n- Small market presence at launch")
+        c_o, c_t = st.columns(2)
+        with c_o:
+            st.info(f"**Opportunities**\n- Capturing underserved niches ignored by {c3}\n- Emerging regulatory support or green initiatives in {industry_niche}\n- Potential partnerships with regional distributors")
+        with c_t:
+            st.warning(f"**Threats**\n- Aggressive pricing response from {c1} or {c2}\n- Fast follower copies of our features\n- High customer acquisition cost in {industry_niche}")
+
     # Feedback section
     st.divider()
     st.markdown("### Rate this Research Report")
